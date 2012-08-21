@@ -2,13 +2,11 @@ package com.futuresandwich.game.DirtBike;
 
 import static org.andengine.extension.physics.box2d.util.constants.PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 
-import java.util.ArrayList;
-
 import org.andengine.engine.camera.Camera;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.EngineOptions.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
-import org.andengine.entity.primitive.PolyLine;
+import org.andengine.entity.IEntity;
 import org.andengine.entity.primitive.Rectangle;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
@@ -29,7 +27,6 @@ import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegion
 import org.andengine.opengl.texture.region.TiledTextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
-import org.andengine.util.adt.array.ArrayUtils;
 import org.andengine.util.color.Color;
 import org.andengine.util.debug.Debug;
 
@@ -41,6 +38,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 
 /**
  * @author Justin Lorenzon
@@ -76,7 +74,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	private PhysicsWorld mPhysicsWorld;
 	private int mFaceCount = 0;
 	
-	private static final int LINE_LENGTH = 30;
+	
 	private DynamicLine line;
 	
 
@@ -91,12 +89,13 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================
-
+	private Camera camera;
+	
 	@Override
 	public EngineOptions onCreateEngineOptions() {
 		Toast.makeText(this, "Touch the screen to add objects.", Toast.LENGTH_LONG).show();
 
-		final Camera camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+		camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
 
 		return new EngineOptions(true, ScreenOrientation.LANDSCAPE_FIXED, new FillResolutionPolicy(), camera);
 	}
@@ -152,16 +151,88 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 //TODO DEBUG DRAW DEBUGDRAW - TOGGLE ON OFF  	 		
 	    mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
 
-		this.addFace(0, 0);
+		//this.addFace(0, 0);
 		
+		IEntity chassis = this.createCar(this.mScene);
+		camera.setChaseEntity(chassis);
 		return this.mScene;
 	}
+	
+	private IEntity createCar(final Scene pScene) {
+		final float centerX = CAMERA_WIDTH / 2;
+		final float centerY = CAMERA_HEIGHT / 2;
 
+		final float spriteWidth = this.mBoxFaceTextureRegion.getWidth();
+		final float spriteHeight = this.mBoxFaceTextureRegion.getHeight();
+
+		final FixtureDef objectFixtureDef = PhysicsFactory.createFixtureDef(20, 0.2f, 1.0f);
+
+		
+		final float anchorFaceX = centerX - spriteWidth * 0.5f + 220 * (-1);
+		final float anchorFaceY = centerY - spriteHeight * 0.5f;
+
+		final IAreaShape chassisFace = new Rectangle(anchorFaceX, anchorFaceY,60.0f,10.0f, this.getVertexBufferObjectManager());
+		final AnimatedSprite backMovingFace = new AnimatedSprite(anchorFaceX-(spriteWidth/2), anchorFaceY, this.mCircleFaceTextureRegion, this.getVertexBufferObjectManager());
+		final AnimatedSprite frontMovingFace = new AnimatedSprite(anchorFaceX+60+(spriteWidth/2), anchorFaceY, this.mCircleFaceTextureRegion, this.getVertexBufferObjectManager());
+		
+		
+		final Body backWheelBody = PhysicsFactory.createCircleBody(this.mPhysicsWorld, backMovingFace, BodyType.DynamicBody, objectFixtureDef);
+		final Body frontWheelBody = PhysicsFactory.createCircleBody(this.mPhysicsWorld, frontMovingFace, BodyType.DynamicBody, objectFixtureDef);
+		final Body chassisBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, chassisFace, BodyType.DynamicBody, objectFixtureDef);
+
+		pScene.attachChild(chassisFace);
+		pScene.attachChild(backMovingFace);
+		pScene.attachChild(frontMovingFace);
+
+//			this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(anchorFace, anchorBody, true, true){
+//				@Override
+//				public void onUpdate(final float pSecondsElapsed) {
+//					super.onUpdate(pSecondsElapsed);
+//					final Vector2 movingBodyWorldCenter = movingBody.getWorldCenter();
+//					connectionLine.setPosition(connectionLine.getX1(), connectionLine.getY1(), movingBodyWorldCenter.x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, movingBodyWorldCenter.y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT);
+//				}
+//			});
+		
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(chassisFace, chassisBody, true, true));
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(backMovingFace, backWheelBody, true, true));
+		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(frontMovingFace, frontWheelBody, true, true));
+
+
+		final RevoluteJointDef revoluteJointDef = new RevoluteJointDef();
+		revoluteJointDef.bodyA = chassisBody;
+		revoluteJointDef.bodyB = backWheelBody;
+		revoluteJointDef.localAnchorA.set(-30.0f/PIXEL_TO_METER_RATIO_DEFAULT,0.0f);
+		revoluteJointDef.localAnchorB.set(0.0f, 0.0f);
+		revoluteJointDef.enableMotor = true;
+		revoluteJointDef.motorSpeed = 10;
+		revoluteJointDef.maxMotorTorque = 200;
+		revoluteJointDef.collideConnected = false;
+		this.mPhysicsWorld.createJoint(revoluteJointDef);
+		
+		final RevoluteJointDef revoluteJointDef2 = new RevoluteJointDef();
+		revoluteJointDef2.bodyA = chassisBody;
+		revoluteJointDef2.bodyB = frontWheelBody;
+		revoluteJointDef2.localAnchorA.set(30.0f/PIXEL_TO_METER_RATIO_DEFAULT,0.0f);
+		revoluteJointDef2.localAnchorB.set(0.0f, 0.0f);
+		revoluteJointDef2.enableMotor = true;
+		revoluteJointDef2.motorSpeed = 10;
+		revoluteJointDef2.maxMotorTorque = 200;
+		revoluteJointDef2.collideConnected = false;
+		this.mPhysicsWorld.createJoint(revoluteJointDef2);
+		
+		return chassisFace;
+	}
+
+	private Vector2 lastTouch;
+	private final float stepThreshold = 10;
 	@Override
 	public boolean onSceneTouchEvent(final Scene pScene, final TouchEvent pSceneTouchEvent) {
+		
 		if(this.mPhysicsWorld != null) {
-			if(pSceneTouchEvent.isActionDown()) {
-				line.addVertex(pSceneTouchEvent.getX(), pSceneTouchEvent.getY());
+			Vector2 currentTouch = new Vector2(pSceneTouchEvent.getX(), pSceneTouchEvent.getY());
+			if(pSceneTouchEvent.isActionDown() || pSceneTouchEvent.isActionMove() && lastTouch.dst(currentTouch)>stepThreshold) {
+				lastTouch = currentTouch;
+				line.addVertex(currentTouch.x,currentTouch.y);
 				return true;
 			}
 		}
