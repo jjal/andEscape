@@ -3,6 +3,7 @@ package com.futuresandwich.game.DirtBike;
 import static org.andengine.extension.physics.box2d.util.constants.PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 
 import org.andengine.engine.camera.Camera;
+import org.andengine.engine.handler.IUpdateHandler;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.EngineOptions.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
@@ -17,7 +18,6 @@ import org.andengine.entity.util.FPSLogger;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
 import org.andengine.extension.physics.box2d.PhysicsFactory;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
-import org.andengine.extension.physics.box2d.util.Vector2Pool;
 import org.andengine.input.sensor.acceleration.AccelerationData;
 import org.andengine.input.sensor.acceleration.IAccelerationListener;
 import org.andengine.input.touch.TouchEvent;
@@ -30,13 +30,19 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.color.Color;
 import org.andengine.util.debug.Debug;
 
+import android.app.AlertDialog;
 import android.hardware.SensorManager;
 import android.widget.Toast;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 
@@ -123,21 +129,27 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.setOnSceneTouchListener(this);
 
 		this.mPhysicsWorld = new PhysicsWorld(new Vector2(0, SensorManager.GRAVITY_EARTH), false);
+		
+		
 
+		float levelWidth = 8000f;
 		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
-		final Rectangle ground = new Rectangle(0, CAMERA_HEIGHT - 2, CAMERA_WIDTH, 2, vertexBufferObjectManager);
-		final Rectangle roof = new Rectangle(0, 0, CAMERA_WIDTH, 2, vertexBufferObjectManager);
+		final Rectangle ground = new Rectangle(0, CAMERA_HEIGHT - 2, levelWidth, 2, vertexBufferObjectManager);
+		final Rectangle roof = new Rectangle(0, 0, levelWidth, 2, vertexBufferObjectManager);
 		final Rectangle left = new Rectangle(0, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
-		final Rectangle right = new Rectangle(CAMERA_WIDTH - 2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
+		final Rectangle right = new Rectangle(levelWidth-2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
 		final Rectangle shelf = new Rectangle(0, 200, 300, 8, vertexBufferObjectManager);
 		shelf.setColor(Color.BLUE);
 		
 		final FixtureDef wallFixtureDef = PhysicsFactory.createFixtureDef(0, 0.5f, 0.5f);
-		PhysicsFactory.createBoxBody(this.mPhysicsWorld, ground, BodyType.StaticBody, wallFixtureDef);
+		Body groundBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, ground, BodyType.StaticBody, wallFixtureDef);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, roof, BodyType.StaticBody, wallFixtureDef);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, left, BodyType.StaticBody, wallFixtureDef);
-		PhysicsFactory.createBoxBody(this.mPhysicsWorld, right, BodyType.StaticBody, wallFixtureDef);
+		Body endBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, right, BodyType.StaticBody, wallFixtureDef);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, shelf, BodyType.StaticBody, wallFixtureDef);
+		groundBody.setUserData("ground");
+		endBody.setUserData("endWall");
+		
 
 		this.mScene.attachChild(ground);
 		this.mScene.attachChild(roof);
@@ -155,13 +167,91 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 //TODO DEBUG DRAW DEBUGDRAW - TOGGLE ON OFF  	 		
 	    mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
 
-		//this.addFace(0, 0);
 		
-		IEntity chassis = this.createCar(this.mScene,100,250);
+		IEntity chassis = this.createCar(this.mScene,280,80);
 		camera.setChaseEntity(chassis);
+		
+		this.mPhysicsWorld.setContactListener(createContactListener());
+		this.mScene.registerUpdateHandler(getCollisionUpdateHandler());
 		return this.mScene;
 	}
 	
+	private ContactListener createContactListener()
+	{
+		ContactListener listener = new ContactListener()
+		{
+			@Override
+			public void beginContact(Contact contact) {
+				final Fixture x1 = contact.getFixtureA();
+				final Fixture x2 = contact.getFixtureB(); 
+				if(AreContacting(x1,x2,"car","endWall"))
+				{
+					endLevel();
+				}else
+				if(AreContacting(x1, x2, "car","ground"))
+				{
+					die();
+				}
+			}
+
+			@Override
+			public void endContact(Contact contact) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void preSolve(Contact contact, Manifold oldManifold) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void postSolve(Contact contact, ContactImpulse impulse) {
+				// TODO Auto-generated method stub
+				
+			}
+			protected boolean AreContacting(Fixture x1, Fixture x2, String body1, String body2)
+			{
+				return (x1.getBody().getUserData() != null && x2.getBody().getUserData() != null)
+						&& ((x1.getBody().getUserData().equals(body1) && x2.getBody().getUserData().equals(body2))
+						|| (x2.getBody().getUserData().equals(body1) && x1.getBody().getUserData().equals(body2)));
+			}
+		};
+		return listener;
+	}
+	boolean isWin=false;
+	boolean isLose=false;
+	public IUpdateHandler getCollisionUpdateHandler()
+	{
+		return new IUpdateHandler() {
+
+			@Override
+			public void onUpdate(float pSecondsElapsed) {
+				// TODO Auto-generated method stub
+					
+			}
+
+			@Override
+			public void reset() {
+				// TODO Auto-generated method stub
+				
+			}
+			
+		};
+	}
+	
+	protected void die()
+	{
+		isLose = true;
+		this.mScene.reset();
+	}
+	
+	protected void endLevel() {
+		isWin = true;
+		this.mScene.reset();
+	}
+
 	private IEntity createCar(final Scene pScene,float x, float y) {
 		final float centerX = x;
 		final float centerY = y;
@@ -169,7 +259,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		final float spriteWidth = this.mBoxFaceTextureRegion.getWidth();
 		final float spriteHeight = this.mBoxFaceTextureRegion.getHeight();
 
-		final FixtureDef objectFixtureDef = PhysicsFactory.createFixtureDef(40, 0.1f, 1.0f);
+		final FixtureDef objectFixtureDef = PhysicsFactory.createFixtureDef(30, 0.2f, 1.0f);
 
 		
 		final float anchorFaceX = centerX - spriteWidth * 0.5f + 220 * (-1);
@@ -183,6 +273,10 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		final Body backWheelBody = PhysicsFactory.createCircleBody(this.mPhysicsWorld, backMovingFace, BodyType.DynamicBody, objectFixtureDef);
 		final Body frontWheelBody = PhysicsFactory.createCircleBody(this.mPhysicsWorld, frontMovingFace, BodyType.DynamicBody, objectFixtureDef);
 		final Body chassisBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, chassisFace, BodyType.DynamicBody, objectFixtureDef);
+		
+		backWheelBody.setUserData("car");
+		frontWheelBody.setUserData("car");
+		chassisBody.setUserData("car");
 
 		pScene.attachChild(chassisFace);
 		pScene.attachChild(backMovingFace);
@@ -208,8 +302,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		revoluteJointDef.localAnchorA.set(-30.0f/PIXEL_TO_METER_RATIO_DEFAULT,0.0f);
 		revoluteJointDef.localAnchorB.set(0.0f, 0.0f);
 		revoluteJointDef.enableMotor = true;
-		revoluteJointDef.motorSpeed = 10;
-		revoluteJointDef.maxMotorTorque = 200;
+		revoluteJointDef.motorSpeed = 40;
+		revoluteJointDef.maxMotorTorque = 400;
 		revoluteJointDef.collideConnected = false;
 		this.mPhysicsWorld.createJoint(revoluteJointDef);
 		
@@ -219,8 +313,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		revoluteJointDef2.localAnchorA.set(30.0f/PIXEL_TO_METER_RATIO_DEFAULT,0.0f);
 		revoluteJointDef2.localAnchorB.set(0.0f, 0.0f);
 		revoluteJointDef2.enableMotor = true;
-		revoluteJointDef2.motorSpeed = 10;
-		revoluteJointDef2.maxMotorTorque = 200;
+		revoluteJointDef2.motorSpeed = 40;
+		revoluteJointDef2.maxMotorTorque = 400;
 		revoluteJointDef2.collideConnected = false;
 		this.mPhysicsWorld.createJoint(revoluteJointDef2);
 		
@@ -250,9 +344,9 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 	@Override
 	public void onAccelerationChanged(final AccelerationData pAccelerationData) {
-		final Vector2 gravity = Vector2Pool.obtain(pAccelerationData.getX(), pAccelerationData.getY());
-		this.mPhysicsWorld.setGravity(gravity);
-		Vector2Pool.recycle(gravity);
+		//final Vector2 gravity = Vector2Pool.obtain(pAccelerationData.getX(), pAccelerationData.getY());
+		//this.mPhysicsWorld.setGravity(gravity);
+		//Vector2Pool.recycle(gravity);
 	}
 
 	@Override
@@ -326,6 +420,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 		return PhysicsFactory.createPolygonBody(pPhysicsWorld, pAreaShape, vertices, pBodyType, pFixtureDef);
 	}
+	
 
 	/**
 	 * Creates a {@link Body} based on a {@link PolygonShape} in the form of a hexagon:
