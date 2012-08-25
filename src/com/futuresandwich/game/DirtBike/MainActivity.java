@@ -97,7 +97,9 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 		camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
 
-		return new EngineOptions(true, ScreenOrientation.LANDSCAPE_FIXED, new FillResolutionPolicy(), camera);
+		EngineOptions options = new EngineOptions(true, ScreenOrientation.LANDSCAPE_FIXED, new FillResolutionPolicy(), camera);
+		options.getRenderOptions().setMultiSampling(true);
+		return options;
 	}
 
 	@Override   
@@ -127,7 +129,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		final Rectangle roof = new Rectangle(0, 0, CAMERA_WIDTH, 2, vertexBufferObjectManager);
 		final Rectangle left = new Rectangle(0, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
 		final Rectangle right = new Rectangle(CAMERA_WIDTH - 2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
-		final Rectangle shelf = new Rectangle(300, 200, 100, 2, vertexBufferObjectManager);
+		final Rectangle shelf = new Rectangle(0, 200, 300, 8, vertexBufferObjectManager);
+		shelf.setColor(Color.BLUE);
 		
 		final FixtureDef wallFixtureDef = PhysicsFactory.createFixtureDef(0, 0.5f, 0.5f);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, ground, BodyType.StaticBody, wallFixtureDef);
@@ -140,9 +143,10 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.attachChild(roof);
 		this.mScene.attachChild(left);
 		this.mScene.attachChild(right);
+		this.mScene.attachChild(shelf);
 		
 		line = DynamicLine.CreateDynamicLine(this.mPhysicsWorld, this.getVertexBufferObjectManager());
-		line.setColor(Color.YELLOW);
+		line.setColor(Color.CYAN);
 		line.setLineWidth( 7f );
 		
 		this.mScene.attachChild(line);
@@ -153,19 +157,19 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 		//this.addFace(0, 0);
 		
-		IEntity chassis = this.createCar(this.mScene);
+		IEntity chassis = this.createCar(this.mScene,100,250);
 		camera.setChaseEntity(chassis);
 		return this.mScene;
 	}
 	
-	private IEntity createCar(final Scene pScene) {
-		final float centerX = CAMERA_WIDTH / 2;
-		final float centerY = CAMERA_HEIGHT / 2;
+	private IEntity createCar(final Scene pScene,float x, float y) {
+		final float centerX = x;
+		final float centerY = y;
 
 		final float spriteWidth = this.mBoxFaceTextureRegion.getWidth();
 		final float spriteHeight = this.mBoxFaceTextureRegion.getHeight();
 
-		final FixtureDef objectFixtureDef = PhysicsFactory.createFixtureDef(20, 0.2f, 1.0f);
+		final FixtureDef objectFixtureDef = PhysicsFactory.createFixtureDef(40, 0.1f, 1.0f);
 
 		
 		final float anchorFaceX = centerX - spriteWidth * 0.5f + 220 * (-1);
@@ -224,13 +228,13 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	}
 
 	private Vector2 lastTouch;
-	private final float stepThreshold = 10;
+	private final float POINT_THRESHOLD = 6;
 	@Override
 	public boolean onSceneTouchEvent(final Scene pScene, final TouchEvent pSceneTouchEvent) {
 		
 		if(this.mPhysicsWorld != null) {
 			Vector2 currentTouch = new Vector2(pSceneTouchEvent.getX(), pSceneTouchEvent.getY());
-			if(pSceneTouchEvent.isActionDown() || pSceneTouchEvent.isActionMove() && lastTouch.dst(currentTouch)>stepThreshold) {
+			if(pSceneTouchEvent.isActionDown() || pSceneTouchEvent.isActionMove() && lastTouch.dst(currentTouch)>POINT_THRESHOLD) {
 				lastTouch = currentTouch;
 				line.addVertex(currentTouch.x,currentTouch.y);
 				return true;

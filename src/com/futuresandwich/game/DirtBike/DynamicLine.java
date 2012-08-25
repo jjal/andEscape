@@ -1,9 +1,17 @@
 package com.futuresandwich.game.DirtBike;
 
+import static org.andengine.extension.physics.box2d.util.constants.PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+
+import org.andengine.engine.camera.Camera;
+import org.andengine.entity.primitive.Mesh;
 import org.andengine.entity.primitive.PolyLine;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
+import org.andengine.opengl.util.GLState;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
-import static org.andengine.extension.physics.box2d.util.constants.PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
+
+import android.opengl.GLES10;
+import android.opengl.GLES20;
+
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -44,8 +52,16 @@ public class DynamicLine extends PolyLine {
 		
 		// Define the line shape.
 		polyLine = new PolygonShape();
+		
+		this.setDrawMode(Mesh.DrawMode.LINE_STRIP);
 	}
 	
+	@Override
+	protected void preDraw(GLState pGLState, Camera pCamera) {
+		super.preDraw(pGLState, pCamera);
+		//doesn't work!
+		GLES20.glEnable(GLES10.GL_LINE_SMOOTH);
+	};
 	
 	private void queueVertex(float x, float y)
 	{
