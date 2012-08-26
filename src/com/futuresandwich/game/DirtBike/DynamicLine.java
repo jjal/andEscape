@@ -28,10 +28,15 @@ public class DynamicLine extends PolyLine {
 	protected PolygonShape polyLine;
 	protected Body lineBody;
 	
-	public static DynamicLine CreateDynamicLine(PhysicsWorld world, VertexBufferObjectManager vertexBOManager)
+	public static DynamicLine CreateDynamicLine(float x, float y, PhysicsWorld world, VertexBufferObjectManager vertexBOManager)
 	{
 		float[] vX = new float[NUM_VERTICES];
 		float[] vY = new float[NUM_VERTICES];
+		for(int i=0;i<NUM_VERTICES;i++)
+		{
+			vX[i] = x;
+			vY[i] = y;
+		}
 		return new DynamicLine(world, vX, vY, vertexBOManager);
 	}
 	
@@ -107,5 +112,13 @@ public class DynamicLine extends PolyLine {
 		
 		//update the shape's (drawable) vertices
 		this.updateVertices(verticesX, verticesY);
+	}
+	
+	@Override
+	public void dispose() {
+		//TODO: remove complete from physics world
+		this.lineBody.getWorld().destroyBody(this.lineBody);
+		super.dispose();
+		
 	}
 }

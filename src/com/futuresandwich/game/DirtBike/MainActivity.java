@@ -12,6 +12,7 @@ import org.andengine.entity.primitive.Rectangle;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
 import org.andengine.entity.scene.background.Background;
+import org.andengine.entity.scene.background.ParallaxBackground.ParallaxEntity;
 import org.andengine.entity.shape.IAreaShape;
 import org.andengine.entity.sprite.AnimatedSprite;
 import org.andengine.entity.util.FPSLogger;
@@ -21,6 +22,8 @@ import org.andengine.extension.physics.box2d.PhysicsWorld;
 import org.andengine.input.sensor.acceleration.AccelerationData;
 import org.andengine.input.sensor.acceleration.IAccelerationListener;
 import org.andengine.input.touch.TouchEvent;
+import org.andengine.opengl.font.Font;
+import org.andengine.opengl.font.FontFactory;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
@@ -30,7 +33,7 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.color.Color;
 import org.andengine.util.debug.Debug;
 
-import android.app.AlertDialog;
+import android.graphics.Typeface;
 import android.hardware.SensorManager;
 import android.widget.Toast;
 
@@ -44,7 +47,7 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
+
 
 /**
  * @author Justin Lorenzon
@@ -61,7 +64,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 	private static final int CAMERA_WIDTH = 800;
 	private static final int CAMERA_HEIGHT = 480;
-
+	private static final int MAX_LINES = 5;
 	private static final FixtureDef FIXTURE_DEF = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
 
 	// ===========================================================
@@ -70,18 +73,23 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 	private BitmapTextureAtlas mBitmapTextureAtlas;
 
-	private TiledTextureRegion mBoxFaceTextureRegion;
-	private TiledTextureRegion mCircleFaceTextureRegion;
-	private TiledTextureRegion mTriangleFaceTextureRegion;
-	private TiledTextureRegion mHexagonFaceTextureRegion;
-
+	public TiledTextureRegion mBoxFaceTextureRegion;
+	public TiledTextureRegion mCircleFaceTextureRegion;
+	public TiledTextureRegion mTriangleFaceTextureRegion;
+	public TiledTextureRegion mHexagonFaceTextureRegion;
+	public ScrollableParallaxBackground parallaxBackground;
+	
+	private TiledTextureRegion back0;
+	private TiledTextureRegion back1;
+	private TiledTextureRegion back2;
+	
 	private Scene mScene;
 
 	private PhysicsWorld mPhysicsWorld;
 	private int mFaceCount = 0;
+	private Font mFont;
 	
-	
-	private DynamicLine line;
+	private LineRepository lines;
 	
 
 	// ===========================================================
@@ -112,12 +120,23 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	public void onCreateResources() {
 		BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 
-		this.mBitmapTextureAtlas = new BitmapTextureAtlas(this.getTextureManager(), 64, 128, TextureOptions.BILINEAR);
-		this.mBoxFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_box_tiled.png", 0, 0, 2, 1); // 64x32
+		this.mBitmapTextureAtlas = new BitmapTextureAtlas(this.getTextureManager(), 800, 2048, TextureOptions.BILINEAR);
+		this.mBoxFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_box_tiled.png", 0, 0, 1, 1); // 64x32
 		this.mCircleFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_circle_tiled.png", 0, 32, 2, 1); // 64x32
 		this.mTriangleFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_triangle_tiled.png", 0, 64, 2, 1); // 64x32
 		this.mHexagonFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_hexagon_tiled.png", 0, 96, 2, 1); // 64x32
+		
+		back0 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backlight.png", 0, 128, 1, 1); // 800x480 or something
+		back1 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris0.png", 0, 508, 1, 1); 
+		back2 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris1.png", 0, 936, 1, 1); 
+		
+		
+		
+		this.mFont = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
+		this.mFont.load();
+		
 		this.mBitmapTextureAtlas.load();
+		
 	}
 
 	@Override
@@ -130,7 +149,27 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 		this.mPhysicsWorld = new PhysicsWorld(new Vector2(0, SensorManager.GRAVITY_EARTH), false);
 		
+		//ParallaxLayer parallaxLayer = new ParallaxLayer(camera, true);
+		parallaxBackground = new ScrollableParallaxBackground(camera, CAMERA_WIDTH,CAMERA_HEIGHT,this.mEngine);
+		parallaxBackground.setParallaxChangePerSecond(0);
+		parallaxBackground.setParallaxValue(480);
 		
+		AnimatedSprite back0Sprite = new AnimatedSprite(0,0, back0.getWidth(),back0.getHeight(),back0,this.getVertexBufferObjectManager());
+		AnimatedSprite back1Sprite = new AnimatedSprite(0,-480, back0.getWidth(),back1.getHeight(),back0,this.getVertexBufferObjectManager());
+		AnimatedSprite back2Sprite = new AnimatedSprite(0,-480, back0.getWidth(),back2.getHeight(),back0,this.getVertexBufferObjectManager());
+		
+		parallaxBackground.attachParallaxEntity(new ParallaxEntity(0,back0Sprite));
+		parallaxBackground.attachParallaxEntity(new ParallaxEntity(-5,back1Sprite));
+		parallaxBackground.attachParallaxEntity(new ParallaxEntity(-15,back2Sprite));
+		
+		this.mScene.setBackground(parallaxBackground);
+
+		// Create your sprites as you normally would
+//		Sprite mountainsSprite = new Sprite(0, 0, WIDTH, HEIGHT, mountainsTextureRegion, mEngine.getVertexBufferObjectManager());
+//		Sprite starsSprite = new Sprite(0, 0, WIDTH, HEIGHT, starsTextureRegion, mEngine.getVertexBufferObjectManager());
+//		 
+//		backgroundParallax.attachParallaxEntity(new ParallaxEntity(15, starsSprite, false, 1));
+//		backgroundParallax.attachParallaxEntity(new ParallaxEntity(10, mountainsSprite, true));
 
 		float levelWidth = 8000f;
 		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
@@ -150,30 +189,40 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		groundBody.setUserData("ground");
 		endBody.setUserData("endWall");
 		
-
 		this.mScene.attachChild(ground);
 		this.mScene.attachChild(roof);
 		this.mScene.attachChild(left);
 		this.mScene.attachChild(right);
 		this.mScene.attachChild(shelf);
 		
-		line = DynamicLine.CreateDynamicLine(this.mPhysicsWorld, this.getVertexBufferObjectManager());
-		line.setColor(Color.CYAN);
-		line.setLineWidth( 7f );
-		
-		this.mScene.attachChild(line);
+		lines = new LineRepository(MAX_LINES);
 
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 //TODO DEBUG DRAW DEBUGDRAW - TOGGLE ON OFF  	 		
 	    mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
 
 		
-		IEntity chassis = this.createCar(this.mScene,280,80);
+		IEntity chassis = CarFactory.createCar(this.mScene,280,80,this.mPhysicsWorld, this.getVertexBufferObjectManager(), this);
 		camera.setChaseEntity(chassis);
 		
 		this.mPhysicsWorld.setContactListener(createContactListener());
 		this.mScene.registerUpdateHandler(getCollisionUpdateHandler());
 		return this.mScene;
+	}
+	
+	private void addLine(float x, float y)
+	{
+		DynamicLine line = DynamicLine.CreateDynamicLine(x, y, this.mPhysicsWorld, this.getVertexBufferObjectManager());
+		line.setColor(Color.CYAN);
+		line.setLineWidth( 7f );
+		this.mScene.attachChild(line);
+		DynamicLine removed = this.lines.addLine(line);
+		if(removed != null)
+		{
+			this.mEngine.getScene().detachChild(removed);
+			removed.dispose();
+			removed = null;
+		}
 	}
 	
 	private ContactListener createContactListener()
@@ -243,83 +292,38 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	
 	protected void die()
 	{
-		isLose = true;
-		this.mScene.reset();
+		if(!isLose)
+		{
+			isLose = true;
+			this.runOnUiThread(new Runnable() {
+			    @Override
+			    public void run() {
+			    	MainActivity.this.showMessage("You died. Good job.");
+			    }
+			});
+		}
+		
 	}
 	
 	protected void endLevel() {
-		isWin = true;
-		this.mScene.reset();
+		if(!isWin)
+		{
+			isWin = true;
+			this.runOnUiThread(new Runnable() {
+			    @Override
+			    public void run() {
+			    	MainActivity.this.showMessage("You won i guess.");
+			    }
+			});
+		}
 	}
-
-	private IEntity createCar(final Scene pScene,float x, float y) {
-		final float centerX = x;
-		final float centerY = y;
-
-		final float spriteWidth = this.mBoxFaceTextureRegion.getWidth();
-		final float spriteHeight = this.mBoxFaceTextureRegion.getHeight();
-
-		final FixtureDef objectFixtureDef = PhysicsFactory.createFixtureDef(30, 0.2f, 1.0f);
-
-		
-		final float anchorFaceX = centerX - spriteWidth * 0.5f + 220 * (-1);
-		final float anchorFaceY = centerY - spriteHeight * 0.5f;
-
-		final IAreaShape chassisFace = new Rectangle(anchorFaceX, anchorFaceY,60.0f,10.0f, this.getVertexBufferObjectManager());
-		final AnimatedSprite backMovingFace = new AnimatedSprite(anchorFaceX-(spriteWidth/2), anchorFaceY, this.mCircleFaceTextureRegion, this.getVertexBufferObjectManager());
-		final AnimatedSprite frontMovingFace = new AnimatedSprite(anchorFaceX+60+(spriteWidth/2), anchorFaceY, this.mCircleFaceTextureRegion, this.getVertexBufferObjectManager());
-		
-		
-		final Body backWheelBody = PhysicsFactory.createCircleBody(this.mPhysicsWorld, backMovingFace, BodyType.DynamicBody, objectFixtureDef);
-		final Body frontWheelBody = PhysicsFactory.createCircleBody(this.mPhysicsWorld, frontMovingFace, BodyType.DynamicBody, objectFixtureDef);
-		final Body chassisBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, chassisFace, BodyType.DynamicBody, objectFixtureDef);
-		
-		backWheelBody.setUserData("car");
-		frontWheelBody.setUserData("car");
-		chassisBody.setUserData("car");
-
-		pScene.attachChild(chassisFace);
-		pScene.attachChild(backMovingFace);
-		pScene.attachChild(frontMovingFace);
-
-//			this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(anchorFace, anchorBody, true, true){
-//				@Override
-//				public void onUpdate(final float pSecondsElapsed) {
-//					super.onUpdate(pSecondsElapsed);
-//					final Vector2 movingBodyWorldCenter = movingBody.getWorldCenter();
-//					connectionLine.setPosition(connectionLine.getX1(), connectionLine.getY1(), movingBodyWorldCenter.x * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT, movingBodyWorldCenter.y * PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT);
-//				}
-//			});
-		
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(chassisFace, chassisBody, true, true));
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(backMovingFace, backWheelBody, true, true));
-		this.mPhysicsWorld.registerPhysicsConnector(new PhysicsConnector(frontMovingFace, frontWheelBody, true, true));
-
-
-		final RevoluteJointDef revoluteJointDef = new RevoluteJointDef();
-		revoluteJointDef.bodyA = chassisBody;
-		revoluteJointDef.bodyB = backWheelBody;
-		revoluteJointDef.localAnchorA.set(-30.0f/PIXEL_TO_METER_RATIO_DEFAULT,0.0f);
-		revoluteJointDef.localAnchorB.set(0.0f, 0.0f);
-		revoluteJointDef.enableMotor = true;
-		revoluteJointDef.motorSpeed = 40;
-		revoluteJointDef.maxMotorTorque = 400;
-		revoluteJointDef.collideConnected = false;
-		this.mPhysicsWorld.createJoint(revoluteJointDef);
-		
-		final RevoluteJointDef revoluteJointDef2 = new RevoluteJointDef();
-		revoluteJointDef2.bodyA = chassisBody;
-		revoluteJointDef2.bodyB = frontWheelBody;
-		revoluteJointDef2.localAnchorA.set(30.0f/PIXEL_TO_METER_RATIO_DEFAULT,0.0f);
-		revoluteJointDef2.localAnchorB.set(0.0f, 0.0f);
-		revoluteJointDef2.enableMotor = true;
-		revoluteJointDef2.motorSpeed = 40;
-		revoluteJointDef2.maxMotorTorque = 400;
-		revoluteJointDef2.collideConnected = false;
-		this.mPhysicsWorld.createJoint(revoluteJointDef2);
-		
-		return chassisFace;
+	
+	public void showMessage(CharSequence text)
+	{
+		Toast.makeText(this, text, Toast.LENGTH_LONG).show();
 	}
+	
+	
 
 	private Vector2 lastTouch;
 	private final float POINT_THRESHOLD = 6;
@@ -328,9 +332,15 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		
 		if(this.mPhysicsWorld != null) {
 			Vector2 currentTouch = new Vector2(pSceneTouchEvent.getX(), pSceneTouchEvent.getY());
-			if(pSceneTouchEvent.isActionDown() || pSceneTouchEvent.isActionMove() && lastTouch.dst(currentTouch)>POINT_THRESHOLD) {
+			
+			if(pSceneTouchEvent.isActionDown())
+			{
 				lastTouch = currentTouch;
-				line.addVertex(currentTouch.x,currentTouch.y);
+				addLine(currentTouch.x,currentTouch.y);
+			}
+			else if(pSceneTouchEvent.isActionMove() && lastTouch.dst(currentTouch)>POINT_THRESHOLD) {
+				lastTouch = currentTouch;
+				lines.getLatest().addVertex(currentTouch.x,currentTouch.y);
 				return true;
 			}
 		}
