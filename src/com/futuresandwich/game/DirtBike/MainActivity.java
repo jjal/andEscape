@@ -11,7 +11,6 @@ import org.andengine.entity.IEntity;
 import org.andengine.entity.primitive.Rectangle;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
-import org.andengine.entity.scene.background.Background;
 import org.andengine.entity.scene.background.ParallaxBackground.ParallaxEntity;
 import org.andengine.entity.shape.IAreaShape;
 import org.andengine.entity.sprite.AnimatedSprite;
@@ -27,6 +26,7 @@ import org.andengine.opengl.font.FontFactory;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
+import org.andengine.opengl.texture.region.TextureRegion;
 import org.andengine.opengl.texture.region.TiledTextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
@@ -91,6 +91,10 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	
 	private LineRepository lines;
 	
+	// splash scene
+	protected Scene mSplashScene;
+	private BitmapTextureAtlas mSplashBackgroundTextureAtlas;
+	private TextureRegion mSplashBackgroundTextureRegion;
 
 	// ===========================================================
 	// Constructors
@@ -127,8 +131,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mHexagonFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_hexagon_tiled.png", 0, 96, 2, 1); // 64x32
 		
 		back0 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backlight.png", 0, 128, 1, 1); // 800x480 or something
-		back1 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris0.png", 0, 508, 1, 1); 
-		back2 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris1.png", 0, 936, 1, 1); 
+		back1 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris0.png", 0, 608, 1, 1); 
+		back2 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris1.png", 0, 1088, 1, 1); 
 		
 		
 		
@@ -144,19 +148,19 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mEngine.registerUpdateHandler(new FPSLogger());
 
 		this.mScene = new Scene();
-		this.mScene.setBackground(new Background(0, 0, 0));
 		this.mScene.setOnSceneTouchListener(this);
 
 		this.mPhysicsWorld = new PhysicsWorld(new Vector2(0, SensorManager.GRAVITY_EARTH), false);
 		
 		//ParallaxLayer parallaxLayer = new ParallaxLayer(camera, true);
-		parallaxBackground = new ScrollableParallaxBackground(camera, CAMERA_WIDTH,CAMERA_HEIGHT,this.mEngine);
+		parallaxBackground = new ScrollableParallaxBackground(camera, CAMERA_WIDTH, CAMERA_HEIGHT,this.mEngine);
 		parallaxBackground.setParallaxChangePerSecond(0);
-		parallaxBackground.setParallaxValue(480);
+		parallaxBackground.setParallaxValue(1);
+		
 		
 		AnimatedSprite back0Sprite = new AnimatedSprite(0,0, back0.getWidth(),back0.getHeight(),back0,this.getVertexBufferObjectManager());
-		AnimatedSprite back1Sprite = new AnimatedSprite(0,-480, back0.getWidth(),back1.getHeight(),back0,this.getVertexBufferObjectManager());
-		AnimatedSprite back2Sprite = new AnimatedSprite(0,-480, back0.getWidth(),back2.getHeight(),back0,this.getVertexBufferObjectManager());
+		AnimatedSprite back1Sprite = new AnimatedSprite(0,-10, back0.getWidth(),back1.getHeight(),back1,this.getVertexBufferObjectManager());
+		AnimatedSprite back2Sprite = new AnimatedSprite(0,-15, back0.getWidth(),back2.getHeight(),back2,this.getVertexBufferObjectManager());
 		
 		parallaxBackground.attachParallaxEntity(new ParallaxEntity(0,back0Sprite));
 		parallaxBackground.attachParallaxEntity(new ParallaxEntity(-5,back1Sprite));
