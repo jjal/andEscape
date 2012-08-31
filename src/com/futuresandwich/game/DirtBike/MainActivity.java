@@ -11,6 +11,7 @@ import org.andengine.entity.IEntity;
 import org.andengine.entity.primitive.Rectangle;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
+import org.andengine.entity.scene.background.Background;
 import org.andengine.entity.scene.background.ParallaxBackground.ParallaxEntity;
 import org.andengine.entity.shape.IAreaShape;
 import org.andengine.entity.sprite.AnimatedSprite;
@@ -26,7 +27,6 @@ import org.andengine.opengl.font.FontFactory;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
-import org.andengine.opengl.texture.region.TextureRegion;
 import org.andengine.opengl.texture.region.TiledTextureRegion;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
@@ -91,10 +91,6 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	
 	private LineRepository lines;
 	
-	// splash scene
-	protected Scene mSplashScene;
-	private BitmapTextureAtlas mSplashBackgroundTextureAtlas;
-	private TextureRegion mSplashBackgroundTextureRegion;
 
 	// ===========================================================
 	// Constructors
