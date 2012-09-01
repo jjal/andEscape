@@ -31,7 +31,7 @@ public final class CarFactory {
 		
 		
 		final Body backWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, backMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(20.0f, 0.2f, 1.0f));
-		final Body frontWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, frontMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(90.0f, 0.2f, 1.0f));
+		final Body frontWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, frontMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(110.0f, 0.2f, 1.0f));
 		final Body chassisBody = PhysicsFactory.createBoxBody(pPhysicsWorld, chassisFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(1.0f, 0.2f, 1.0f));
 		
 		backWheelBody.setUserData("car");
@@ -62,7 +62,7 @@ public final class CarFactory {
 		revoluteJointDef.localAnchorA.set(-30.0f/PIXEL_TO_METER_RATIO_DEFAULT,20.0f/PIXEL_TO_METER_RATIO_DEFAULT);
 		revoluteJointDef.localAnchorB.set(0.0f, 0.0f);
 		revoluteJointDef.enableMotor = true;
-		revoluteJointDef.motorSpeed = 40;
+		revoluteJointDef.motorSpeed = 30;
 		revoluteJointDef.maxMotorTorque = 400;
 		revoluteJointDef.collideConnected = false;
 		pPhysicsWorld.createJoint(revoluteJointDef);
@@ -73,7 +73,7 @@ public final class CarFactory {
 		revoluteJointDef2.localAnchorA.set(30.0f/PIXEL_TO_METER_RATIO_DEFAULT,20.0f/PIXEL_TO_METER_RATIO_DEFAULT);
 		revoluteJointDef2.localAnchorB.set(0.0f, 0.0f);
 		revoluteJointDef2.enableMotor = true;
-		revoluteJointDef2.motorSpeed = 40;
+		revoluteJointDef2.motorSpeed = 30;
 		revoluteJointDef2.maxMotorTorque = 400;
 		revoluteJointDef2.collideConnected = false;
 		pPhysicsWorld.createJoint(revoluteJointDef2);

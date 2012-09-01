@@ -16,10 +16,14 @@
             android:label="@string/title_activity_main" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.futuresandwich.game.DirtBike.Splash1Activity"></activity>
+        <activity android:name="com.futuresandwich.game.DirtBike.Splash2Activity"></activity>
+        <activity android:name="com.futuresandwich.game.DirtBike.Splash3Activity"></activity>
+        <activity android:name="com.futuresandwich.game.DirtBike.Splash4Activity"></activity>
+        <activity android:name="com.futuresandwich.game.DirtBike.EndGameActivity"></activity>
     </application>
 
 </manifest>

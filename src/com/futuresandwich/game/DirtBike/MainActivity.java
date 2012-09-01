@@ -11,7 +11,7 @@ import org.andengine.entity.IEntity;
 import org.andengine.entity.primitive.Rectangle;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
-import org.andengine.entity.scene.background.Background;
+
 import org.andengine.entity.scene.background.ParallaxBackground.ParallaxEntity;
 import org.andengine.entity.shape.IAreaShape;
 import org.andengine.entity.sprite.AnimatedSprite;
@@ -54,8 +54,6 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
  *
  */
 
-// Code based on RealMayo example:
-// RealMayo: THIS PROJECT IS SIMPLY THE CODE TAKEN FROM PhysicsExample.java FROM THE AndEngineExamples
 
 public class MainActivity extends SimpleBaseGameActivity implements IAccelerationListener, IOnSceneTouchListener {
 	// ===========================================================
@@ -82,6 +80,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	private TiledTextureRegion back0;
 	private TiledTextureRegion back1;
 	private TiledTextureRegion back2;
+	private TiledTextureRegion fireTex;
 	
 	private Scene mScene;
 
@@ -107,7 +106,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	
 	@Override
 	public EngineOptions onCreateEngineOptions() {
-		Toast.makeText(this, "Touch the screen to add objects.", Toast.LENGTH_LONG).show();
+		
 
 		camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
 
@@ -129,8 +128,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		back0 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backlight.png", 0, 128, 1, 1); // 800x480 or something
 		back1 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris0.png", 0, 608, 1, 1); 
 		back2 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris1.png", 0, 1088, 1, 1); 
-		
-		
+		fireTex =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "fire.png", 0, 1568, 1, 1); 
 		
 		this.mFont = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
 		this.mFont.load();
@@ -158,22 +156,36 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		AnimatedSprite back1Sprite = new AnimatedSprite(0,-10, back0.getWidth(),back1.getHeight(),back1,this.getVertexBufferObjectManager());
 		AnimatedSprite back2Sprite = new AnimatedSprite(0,-15, back0.getWidth(),back2.getHeight(),back2,this.getVertexBufferObjectManager());
 		
+		
 		parallaxBackground.attachParallaxEntity(new ParallaxEntity(0,back0Sprite));
 		parallaxBackground.attachParallaxEntity(new ParallaxEntity(-5,back1Sprite));
 		parallaxBackground.attachParallaxEntity(new ParallaxEntity(-15,back2Sprite));
 		
 		this.mScene.setBackground(parallaxBackground);
 
-		// Create your sprites as you normally would
-//		Sprite mountainsSprite = new Sprite(0, 0, WIDTH, HEIGHT, mountainsTextureRegion, mEngine.getVertexBufferObjectManager());
-//		Sprite starsSprite = new Sprite(0, 0, WIDTH, HEIGHT, starsTextureRegion, mEngine.getVertexBufferObjectManager());
-//		 
-//		backgroundParallax.attachParallaxEntity(new ParallaxEntity(15, starsSprite, false, 1));
-//		backgroundParallax.attachParallaxEntity(new ParallaxEntity(10, mountainsSprite, true));
 
 		float levelWidth = 8000f;
 		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
 		final Rectangle ground = new Rectangle(0, CAMERA_HEIGHT - 2, levelWidth, 2, vertexBufferObjectManager);
+		
+		//fire at the bottom
+		
+		final AnimatedSprite fireSprite = new AnimatedSprite(0,CAMERA_HEIGHT, fireTex.getWidth(),fireTex.getHeight(),fireTex,this.getVertexBufferObjectManager());
+		
+		this.mScene.registerUpdateHandler(new IUpdateHandler()
+		{
+			@Override
+			public void onUpdate(float pSecondsElapsed) {
+				fireSprite.setPosition(camera.getXMin(), CAMERA_HEIGHT);
+			}
+			@Override
+			public void reset() {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+		this.mScene.attachChild(fireSprite);
+		
 		final Rectangle roof = new Rectangle(0, 0, levelWidth, 2, vertexBufferObjectManager);
 		final Rectangle left = new Rectangle(0, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
 		final Rectangle right = new Rectangle(levelWidth-2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
