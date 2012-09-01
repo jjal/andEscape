@@ -7,11 +7,10 @@ import org.andengine.engine.handler.IUpdateHandler;
 import org.andengine.engine.options.EngineOptions;
 import org.andengine.engine.options.EngineOptions.ScreenOrientation;
 import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
-import org.andengine.entity.IEntity;
+import org.andengine.entity.modifier.MoveXModifier;
 import org.andengine.entity.primitive.Rectangle;
 import org.andengine.entity.scene.Scene;
 import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
-
 import org.andengine.entity.scene.background.ParallaxBackground.ParallaxEntity;
 import org.andengine.entity.shape.IAreaShape;
 import org.andengine.entity.sprite.AnimatedSprite;
@@ -168,42 +167,39 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		float levelWidth = 8000f;
 		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
 		final Rectangle ground = new Rectangle(0, CAMERA_HEIGHT - 2, levelWidth, 2, vertexBufferObjectManager);
-		
-		//fire at the bottom
-		
-		final AnimatedSprite fireSprite = new AnimatedSprite(0,CAMERA_HEIGHT-170, fireTex.getWidth(),fireTex.getHeight(),fireTex,this.getVertexBufferObjectManager());
-		fireSprite.setZIndex(1000);
-		
-		this.mScene.registerUpdateHandler(new IUpdateHandler()
-		{
-			@Override
-			public void onUpdate(float pSecondsElapsed) {
-				fireSprite.setPosition(camera.getXMin(), CAMERA_HEIGHT-170);
-			}
-			@Override
-			public void reset() {
-				// TODO Auto-generated method stub
-				
-			}
-		});
-		this.mScene.attachChild(fireSprite);
-		
 		final Rectangle roof = new Rectangle(0, 0, levelWidth, 2, vertexBufferObjectManager);
 		final Rectangle left = new Rectangle(0, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
 		final Rectangle right = new Rectangle(levelWidth-2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
-		final Rectangle shelf = new Rectangle(0, 180, 300, 8, vertexBufferObjectManager);
+		final Rectangle shelf = new Rectangle(0, 160, 300, 8, vertexBufferObjectManager);
 		roof.setColor(Color.TRANSPARENT);
 		left.setColor(Color.TRANSPARENT);
 		ground.setColor(Color.TRANSPARENT);
 		right.setColor(Color.YELLOW);
 		shelf.setColor(new Color(0.2f,0.2f,0.2f));
 		
+		//fire at the bottom
+		final AnimatedSprite fireSprite = new AnimatedSprite(0,CAMERA_HEIGHT-170, fireTex.getWidth(),fireTex.getHeight(),fireTex,this.getVertexBufferObjectManager());
+		fireSprite.setZIndex(1000);
+		final AnimatedSprite fireWallSprite = new AnimatedSprite(-500,0, fireTex.getWidth(),fireTex.getHeight(),fireTex,this.getVertexBufferObjectManager());
+		fireWallSprite.setZIndex(999);
+		fireWallSprite.setRotation(90.0f);
+		final Rectangle fireWallBox = new Rectangle(-2*CAMERA_WIDTH,-410,CAMERA_WIDTH,CAMERA_HEIGHT*2,vertexBufferObjectManager);
+		fireWallBox.setZIndex(999);
+		fireWallBox.setColor(new Color(1.0f,218.0f/255.0f,0));
+		
+		MoveXModifier moveX = new MoveXModifier(60,-500,(int)levelWidth);
+		MoveXModifier moveXBox = new MoveXModifier(60,-1*CAMERA_WIDTH-210,(int)levelWidth-CAMERA_WIDTH-210+500);
+		fireWallSprite.registerEntityModifier(moveX);
+		fireWallBox.registerEntityModifier(moveXBox);
+		
+		
 		final FixtureDef wallFixtureDef = PhysicsFactory.createFixtureDef(0, 0.5f, 0.5f);
-		Body groundBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, ground, BodyType.StaticBody, wallFixtureDef);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, roof, BodyType.StaticBody, wallFixtureDef);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, left, BodyType.StaticBody, wallFixtureDef);
-		Body endBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, right, BodyType.StaticBody, wallFixtureDef);
 		PhysicsFactory.createBoxBody(this.mPhysicsWorld, shelf, BodyType.StaticBody, wallFixtureDef);
+		
+		Body groundBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, ground, BodyType.StaticBody, wallFixtureDef);
+		Body endBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, right, BodyType.StaticBody, wallFixtureDef);
 		groundBody.setUserData("ground");
 		endBody.setUserData("endWall");
 		
@@ -212,16 +208,37 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.attachChild(left);
 		this.mScene.attachChild(right);
 		this.mScene.attachChild(shelf);
+		this.mScene.attachChild(fireSprite);
+		this.mScene.attachChild(fireWallSprite);
+		this.mScene.attachChild(fireWallBox);
 				
 //TODO DEBUG DRAW DEBUGDRAW - TOGGLE ON OFF  	 		
 	    //mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
 		
-		IEntity chassis = CarFactory.createCar(this.mScene,280,80,this.mPhysicsWorld, this.getVertexBufferObjectManager(), this);
+		final AnimatedSprite chassis = (AnimatedSprite)CarFactory.createCar(this.mScene,280,80,this.mPhysicsWorld, this.getVertexBufferObjectManager(), this);
 		camera.setChaseEntity(chassis);
 		
 		lines = new LineRepository(MAX_LINES);
 		
 		this.mScene.sortChildren();
+		
+		this.mScene.registerUpdateHandler(new IUpdateHandler()
+		{
+			@Override
+			public void onUpdate(float pSecondsElapsed) {
+				fireSprite.setPosition(camera.getXMin(), CAMERA_HEIGHT-160);
+				if(fireWallSprite.getX() >= (chassis.getX()-320)) //i don't know why 
+				{
+					die();
+				}
+					
+			}
+			@Override
+			public void reset() {
+				// TODO Auto-generated method stub
+				
+			}
+		});
 		
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		this.mPhysicsWorld.setContactListener(createContactListener());
@@ -317,7 +334,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 			this.runOnUiThread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	MainActivity.this.showMessage("You died. Good job.");
+			    	MainActivity.this.showMessage("You died in a fire.");
 			    	Intent intent = new Intent(MainActivity.this,  MainActivity.class);
 	    			startActivity(intent);
 	    			finish();
