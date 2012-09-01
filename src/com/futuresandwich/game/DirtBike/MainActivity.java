@@ -2,6 +2,10 @@ package com.futuresandwich.game.DirtBike;
 
 import static org.andengine.extension.physics.box2d.util.constants.PhysicsConstants.PIXEL_TO_METER_RATIO_DEFAULT;
 
+import java.io.IOException;
+
+import org.andengine.audio.music.Music;
+import org.andengine.audio.music.MusicFactory;
 import org.andengine.engine.camera.Camera;
 import org.andengine.engine.handler.IUpdateHandler;
 import org.andengine.engine.options.EngineOptions;
@@ -66,6 +70,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	private static final int MAX_LINES = 3;
 	private final static float LEVEL_WIDTH = 8000f;
 	private static final FixtureDef FIXTURE_DEF = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
+	private Music mMusic;
 
 	// ===========================================================
 	// Fields
@@ -89,7 +94,6 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 	private PhysicsWorld mPhysicsWorld;
 	private int mFaceCount = 0;
-	private Font mFont;
 	
 	private LineRepository lines;
 	
@@ -115,6 +119,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 
 		EngineOptions options = new EngineOptions(true, ScreenOrientation.LANDSCAPE_FIXED, new FillResolutionPolicy(), camera);
 		options.getRenderOptions().setMultiSampling(true);
+		options.getAudioOptions().setNeedsMusic(true);
 		return options;
 	}
 
@@ -134,9 +139,13 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		fireTex =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "fire.png", 0, 1568, 1, 1);
 		crateTex =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "spacecrate.png", 800, 0, 1, 1);
 		
-		
-		this.mFont = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
-		this.mFont.load();
+		MusicFactory.setAssetBasePath("mfx/");
+		try {
+			this.mMusic = MusicFactory.createMusicFromAsset(this.mEngine.getMusicManager(), this, "RevolutionDS.ogg");
+			this.mMusic.setLooping(true);
+		} catch (final IOException e) {
+			Debug.e(e);
+		}
 		
 		this.mBitmapTextureAtlas.load();
 		
@@ -250,6 +259,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		this.mPhysicsWorld.setContactListener(createContactListener());
 		this.mScene.registerUpdateHandler(getCollisionUpdateHandler());
+		
+		this.mMusic.play();
 		return this.mScene;
 	}
 	
@@ -365,6 +376,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		if(!isLose)
 		{
 			isLose = true;
+			this.mMusic.stop();
 			this.runOnUiThread(new Runnable() {
 			    @Override
 			    public void run() {

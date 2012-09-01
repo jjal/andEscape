@@ -30,8 +30,8 @@ public final class CarFactory {
 		final AnimatedSprite frontMovingFace = new AnimatedSprite(anchorFaceX+90+(spriteWidth/2), anchorFaceY, activity.mCircleFaceTextureRegion, vertexBufferObjectManager);
 		
 		
-		final Body backWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, backMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(20.0f, 0.2f, 1.0f));
-		final Body frontWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, frontMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(110.0f, 0.2f, 1.0f));
+		final Body backWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, backMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(20.0f, 0.2f, 2.0f));
+		final Body frontWheelBody = PhysicsFactory.createCircleBody(pPhysicsWorld, frontMovingFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(110.0f, 0.2f, 2.0f));
 		final Body chassisBody = PhysicsFactory.createBoxBody(pPhysicsWorld, chassisFace, BodyType.DynamicBody, PhysicsFactory.createFixtureDef(1.0f, 0.2f, 1.0f));
 		
 		backWheelBody.setUserData("car");

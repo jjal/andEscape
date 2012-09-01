@@ -5,6 +5,7 @@ import static org.andengine.extension.physics.box2d.util.constants.PhysicsConsta
 import org.andengine.engine.camera.Camera;
 import org.andengine.entity.primitive.Mesh;
 import org.andengine.entity.primitive.PolyLine;
+import org.andengine.extension.physics.box2d.PhysicsFactory;
 import org.andengine.extension.physics.box2d.PhysicsWorld;
 import org.andengine.opengl.util.GLState;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
@@ -104,6 +105,7 @@ public class DynamicLine extends PolyLine {
 		
 		//set the physics body's vertices
 		//polyLine.set(vertices);
+		 //PhysicsFactory.createFixtureDef(0, 0.2f, 0.9);
 		lineBody.createFixture(polyLine, 0);
 		if(lineBody.getFixtureList().size()>=NUM_VERTICES)
 		{
