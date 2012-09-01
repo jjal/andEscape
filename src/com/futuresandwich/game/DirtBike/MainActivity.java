@@ -14,6 +14,7 @@ import org.andengine.entity.scene.Scene.IOnSceneTouchListener;
 import org.andengine.entity.scene.background.ParallaxBackground.ParallaxEntity;
 import org.andengine.entity.shape.IAreaShape;
 import org.andengine.entity.sprite.AnimatedSprite;
+import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.util.FPSLogger;
 import org.andengine.extension.physics.box2d.PhysicsConnector;
 import org.andengine.extension.physics.box2d.PhysicsFactory;
@@ -59,10 +60,11 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	// ===========================================================
 	// Constants
 	// ===========================================================
-
+	private static final int NUM_BLOCKS = 10;
 	private static final int CAMERA_WIDTH = 800;
 	private static final int CAMERA_HEIGHT = 480;
-	private static final int MAX_LINES = 5;
+	private static final int MAX_LINES = 3;
+	private final static float LEVEL_WIDTH = 8000f;
 	private static final FixtureDef FIXTURE_DEF = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
 
 	// ===========================================================
@@ -81,6 +83,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	private TiledTextureRegion back1;
 	private TiledTextureRegion back2;
 	private TiledTextureRegion fireTex;
+	private TiledTextureRegion crateTex;
 	
 	private Scene mScene;
 
@@ -119,7 +122,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	public void onCreateResources() {
 		BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 
-		this.mBitmapTextureAtlas = new BitmapTextureAtlas(this.getTextureManager(), 800, 2048, TextureOptions.BILINEAR);
+		this.mBitmapTextureAtlas = new BitmapTextureAtlas(this.getTextureManager(), 1024, 2048, TextureOptions.BILINEAR);
 		this.mBoxFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_box_tiled.png", 0, 0, 1, 1); // 64x32
 		this.mCircleFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_circle_tiled.png", 0, 32, 2, 1); // 64x32
 		this.mTriangleFaceTextureRegion = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "face_triangle_tiled.png", 0, 64, 2, 1); // 64x32
@@ -128,7 +131,9 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		back0 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backlight.png", 0, 128, 1, 1); // 800x480 or something
 		back1 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris0.png", 0, 608, 1, 1); 
 		back2 =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "backdebris1.png", 0, 1088, 1, 1); 
-		fireTex =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "fire.png", 0, 1568, 1, 1); 
+		fireTex =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "fire.png", 0, 1568, 1, 1);
+		crateTex =  BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.mBitmapTextureAtlas, this, "spacecrate.png", 800, 0, 1, 1);
+		
 		
 		this.mFont = FontFactory.create(this.getFontManager(), this.getTextureManager(), 256, 256, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32);
 		this.mFont.load();
@@ -164,12 +169,12 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.setBackground(parallaxBackground);
 
 
-		float levelWidth = 8000f;
+		
 		final VertexBufferObjectManager vertexBufferObjectManager = this.getVertexBufferObjectManager();
-		final Rectangle ground = new Rectangle(0, CAMERA_HEIGHT - 2, levelWidth, 2, vertexBufferObjectManager);
-		final Rectangle roof = new Rectangle(0, 0, levelWidth, 2, vertexBufferObjectManager);
+		final Rectangle ground = new Rectangle(0, CAMERA_HEIGHT - 2, LEVEL_WIDTH, 2, vertexBufferObjectManager);
+		final Rectangle roof = new Rectangle(0, 0, LEVEL_WIDTH, 2, vertexBufferObjectManager);
 		final Rectangle left = new Rectangle(0, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
-		final Rectangle right = new Rectangle(levelWidth-2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
+		final Rectangle right = new Rectangle(LEVEL_WIDTH-2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
 		final Rectangle shelf = new Rectangle(0, 160, 300, 8, vertexBufferObjectManager);
 		roof.setColor(Color.TRANSPARENT);
 		left.setColor(Color.TRANSPARENT);
@@ -187,8 +192,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		fireWallBox.setZIndex(999);
 		fireWallBox.setColor(new Color(1.0f,218.0f/255.0f,0));
 		
-		MoveXModifier moveX = new MoveXModifier(60,-500,(int)levelWidth);
-		MoveXModifier moveXBox = new MoveXModifier(60,-1*CAMERA_WIDTH-210,(int)levelWidth-CAMERA_WIDTH-210+500);
+		MoveXModifier moveX = new MoveXModifier(60,-500,(int)LEVEL_WIDTH);
+		MoveXModifier moveXBox = new MoveXModifier(60,-1*CAMERA_WIDTH-210,(int)LEVEL_WIDTH-CAMERA_WIDTH-210+500);
 		fireWallSprite.registerEntityModifier(moveX);
 		fireWallBox.registerEntityModifier(moveXBox);
 		
@@ -211,6 +216,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.attachChild(fireSprite);
 		this.mScene.attachChild(fireWallSprite);
 		this.mScene.attachChild(fireWallBox);
+		
+		addRandomBlocks(NUM_BLOCKS);
 				
 //TODO DEBUG DRAW DEBUGDRAW - TOGGLE ON OFF  	 		
 	    //mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
@@ -244,6 +251,33 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mPhysicsWorld.setContactListener(createContactListener());
 		this.mScene.registerUpdateHandler(getCollisionUpdateHandler());
 		return this.mScene;
+	}
+	
+	private void addRandomBlocks(int numblocks)
+	{
+		float x,y,w,h;
+		float avBoxHeight=60.0f;
+		float variance = 3;
+		Sprite block;
+		for(int i=0; i<numblocks; i++)
+		{
+			x = (float)Math.random()*(LEVEL_WIDTH-CAMERA_WIDTH) + CAMERA_WIDTH;
+			y = (float)Math.random()*(CAMERA_HEIGHT-avBoxHeight);
+			w = (float)Math.random()*(avBoxHeight*variance - avBoxHeight/variance) + avBoxHeight/variance;
+			h = (float)Math.random()*(avBoxHeight*variance - avBoxHeight/variance) + avBoxHeight/variance;
+			block = GetBlock(x,y,(int)w,(int)h);
+			block.setZIndex(1);
+			this.mScene.attachChild(block);
+		}
+	}
+	
+	private Sprite GetBlock(float x, float y, int width, int height)
+	{
+		Sprite block = new Sprite(x,y, crateTex, this.getVertexBufferObjectManager());
+		block.setScale(height/crateTex.getWidth(), height/ crateTex.getHeight());
+		final FixtureDef wallFixtureDef = PhysicsFactory.createFixtureDef(0, 0.5f, 0.5f);
+		PhysicsFactory.createBoxBody(this.mPhysicsWorld, block, BodyType.StaticBody, wallFixtureDef);
+		return block;
 	}
 	
 	private void addLine(float x, float y)
