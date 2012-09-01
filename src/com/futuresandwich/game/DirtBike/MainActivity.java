@@ -33,6 +33,7 @@ import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.color.Color;
 import org.andengine.util.debug.Debug;
 
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.hardware.SensorManager;
 import android.widget.Toast;
@@ -170,13 +171,14 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		
 		//fire at the bottom
 		
-		final AnimatedSprite fireSprite = new AnimatedSprite(0,CAMERA_HEIGHT, fireTex.getWidth(),fireTex.getHeight(),fireTex,this.getVertexBufferObjectManager());
+		final AnimatedSprite fireSprite = new AnimatedSprite(0,CAMERA_HEIGHT-170, fireTex.getWidth(),fireTex.getHeight(),fireTex,this.getVertexBufferObjectManager());
+		fireSprite.setZIndex(1000);
 		
 		this.mScene.registerUpdateHandler(new IUpdateHandler()
 		{
 			@Override
 			public void onUpdate(float pSecondsElapsed) {
-				fireSprite.setPosition(camera.getXMin(), CAMERA_HEIGHT);
+				fireSprite.setPosition(camera.getXMin(), CAMERA_HEIGHT-170);
 			}
 			@Override
 			public void reset() {
@@ -189,8 +191,12 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		final Rectangle roof = new Rectangle(0, 0, levelWidth, 2, vertexBufferObjectManager);
 		final Rectangle left = new Rectangle(0, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
 		final Rectangle right = new Rectangle(levelWidth-2, 0, 2, CAMERA_HEIGHT, vertexBufferObjectManager);
-		final Rectangle shelf = new Rectangle(0, 200, 300, 8, vertexBufferObjectManager);
-		shelf.setColor(Color.BLUE);
+		final Rectangle shelf = new Rectangle(0, 180, 300, 8, vertexBufferObjectManager);
+		roof.setColor(Color.TRANSPARENT);
+		left.setColor(Color.TRANSPARENT);
+		ground.setColor(Color.TRANSPARENT);
+		right.setColor(Color.YELLOW);
+		shelf.setColor(new Color(0.2f,0.2f,0.2f));
 		
 		final FixtureDef wallFixtureDef = PhysicsFactory.createFixtureDef(0, 0.5f, 0.5f);
 		Body groundBody = PhysicsFactory.createBoxBody(this.mPhysicsWorld, ground, BodyType.StaticBody, wallFixtureDef);
@@ -206,17 +212,18 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 		this.mScene.attachChild(left);
 		this.mScene.attachChild(right);
 		this.mScene.attachChild(shelf);
-		
-		lines = new LineRepository(MAX_LINES);
-
-		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
+				
 //TODO DEBUG DRAW DEBUGDRAW - TOGGLE ON OFF  	 		
-	    mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
-
+	    //mScene.attachChild(new Box2dDebugRenderer(mPhysicsWorld, getVertexBufferObjectManager()));	
 		
 		IEntity chassis = CarFactory.createCar(this.mScene,280,80,this.mPhysicsWorld, this.getVertexBufferObjectManager(), this);
 		camera.setChaseEntity(chassis);
 		
+		lines = new LineRepository(MAX_LINES);
+		
+		this.mScene.sortChildren();
+		
+		this.mScene.registerUpdateHandler(this.mPhysicsWorld);
 		this.mPhysicsWorld.setContactListener(createContactListener());
 		this.mScene.registerUpdateHandler(getCollisionUpdateHandler());
 		return this.mScene;
@@ -225,7 +232,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 	private void addLine(float x, float y)
 	{
 		DynamicLine line = DynamicLine.CreateDynamicLine(x, y, this.mPhysicsWorld, this.getVertexBufferObjectManager());
-		line.setColor(Color.CYAN);
+		line.setColor(new Color(0.8f,0.8f,0.8f));
 		line.setLineWidth( 7f );
 		this.mScene.attachChild(line);
 		DynamicLine removed = this.lines.addLine(line);
@@ -311,6 +318,9 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 			    @Override
 			    public void run() {
 			    	MainActivity.this.showMessage("You died. Good job.");
+			    	Intent intent = new Intent(MainActivity.this,  MainActivity.class);
+	    			startActivity(intent);
+	    			finish();
 			    }
 			});
 		}
@@ -324,7 +334,10 @@ public class MainActivity extends SimpleBaseGameActivity implements IAcceleratio
 			this.runOnUiThread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	MainActivity.this.showMessage("You won i guess.");
+			    	MainActivity.this.showMessage("You win!");
+			    	Intent intent = new Intent(MainActivity.this,  EndGameActivity.class);
+	    			startActivity(intent);
+	    			finish();
 			    }
 			});
 		}

@@ -125,10 +125,13 @@ public abstract class BaseSplashActivity extends SimpleBaseGameActivity implemen
 				NextActivity();
 			}
 		});		
-		splashimage.setAlpha(0);
-		splashimage.setScale(getSplashScaleFrom());
+		
 		if(getSplashDuration() > 0)
-			splashimage.registerEntityModifier(animation);		
+		{
+			splashimage.setAlpha(0);
+			splashimage.setScale(getSplashScaleFrom());
+			splashimage.registerEntityModifier(animation);
+		}
 		scene.attachChild(splashimage);
 
 		return scene;
